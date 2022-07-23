@@ -1,25 +1,81 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
+import { QueueTreeProvider } from "./queueView/QueueTreeProvider";
+import { createConnectionQuickPick } from "./createConnection/CreateConnectionQuickPick";
+import { Store } from "./logic/store/Store";
+import { ConnectionFacade } from "./facade/ConnectionFacade";
+import { ConnectionPool } from "./logic/connections/ConnectionPool";
+import { ConnectionFactory } from "./logic/connections/ConnectionFactory";
+import { MessagesWebView } from "./panels/MessagesWebView";
+import { ConnectionTreeItem } from "./queueView/items/ConnectionTreeItem";
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-	
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "message-queue-explorer" is now active!');
+  const store = new Store(context.globalState);
+  const connectionFactory = new ConnectionFactory(store);
+  const connectionPool = new ConnectionPool(connectionFactory);
+  const connectionFacade = new ConnectionFacade(store, connectionPool);
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('message-queue-explorer.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from message-queue-explorer!');
-	});
+  const queueTreeProvider = new QueueTreeProvider(connectionFacade);
+  vscode.window.registerTreeDataProvider(
+    "message-queue-explorer.queueTreeView",
+    queueTreeProvider
+  );
 
-	context.subscriptions.push(disposable);
+  vscode.commands.registerCommand(
+    "message-queue-explorer.queueTreeView.refresh",
+    () => queueTreeProvider.refresh()
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "message-queue-explorer.addConnection",
+      () => createConnectionQuickPick(store)
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "message-queue-explorer.openQueue",
+      (args) => {
+        const panel = new MessagesWebView(
+          connectionFacade,
+          context.extensionUri
+        );
+        panel.open(args);
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "message-queue-explorer.disconnectConnection",
+      async (item) => {
+        if (item instanceof ConnectionTreeItem) {
+          await connectionFacade.closeConnection(item.connectionId);
+          return vscode.commands.executeCommand(
+            "message-queue-explorer.queueTreeView.refresh"
+          );
+        }
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "message-queue-explorer.deleteConnection",
+      async (item) => {
+        if (item instanceof ConnectionTreeItem) {
+          await connectionFacade.removeConnection(item.connectionId);
+          return vscode.commands.executeCommand(
+            "message-queue-explorer.queueTreeView.refresh"
+          );
+        }
+      }
+    )
+  );
 }
 
 // this method is called when your extension is deactivated

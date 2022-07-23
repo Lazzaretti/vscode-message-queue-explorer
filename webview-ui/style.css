@@ -1,0 +1,22 @@
+.msg {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: auto;
+  margin-bottom: 2em;
+}
+
+.msg-header {
+  opacity: 1;
+}
+
+.msg-action {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+}
+
+.msg-body {
+  grid-column-start: 1;
+  grid-column-end: span end;
+  opacity: 1;
+}
