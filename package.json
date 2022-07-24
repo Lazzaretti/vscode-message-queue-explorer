@@ -2,7 +2,7 @@
   "name": "message-queue-explorer",
   "displayName": "Message Queue Explorer",
   "description": "Tool to view and interact with Service Bus message queues.",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "license": "MIT",
   "repository": {
     "type": "git",
