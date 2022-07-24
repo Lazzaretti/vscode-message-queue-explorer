@@ -2,7 +2,7 @@
   "name": "message-queue-explorer",
   "displayName": "Message Queue Explorer",
   "description": "Tool to view and interact with Service Bus message queues.",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -12,8 +12,8 @@
   "bugs": {
     "url": "https://github.com/Lazzaretti/vscode-message-queue-explorer/issues"
   },
+  "qna": "https://github.com/Lazzaretti/vscode-message-queue-explorer/discussions/categories/q-a",
   "icon": "resources/MQ.png",
-  "preview": true,
   "publisher": "Lazzaretti",
   "author": {
     "name": "Lazzaretti",
