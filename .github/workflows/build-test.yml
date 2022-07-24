@@ -1,0 +1,17 @@
+name: Lint and Build
+on: [push]
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'yarn'
+      - run: npm i -g yarn
+      - run: yarn install --immutable
+      - name: lint
+        run: yarn lint
+      - name: build
+        run: yarn compile
