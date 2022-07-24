@@ -62,6 +62,12 @@ export class QueueTreeProvider implements vscode.TreeDataProvider<MQTreeItem> {
       }
     } else {
       const connections = this.connectionFacade.getConnections();
+      vscode.commands.executeCommand(
+        "setContext",
+        "message-queue-explorer.hasConnections",
+        !!connections
+      );
+
       return connections.map((c) => this.mapConnectionItem(c));
     }
   }

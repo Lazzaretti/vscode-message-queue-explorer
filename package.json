@@ -76,8 +76,9 @@
     },
     "viewsWelcome": [
       {
-        "view": "message-queue-explorer",
-        "contents": "No connections found.\n[Add Connection](command:message-queue-explorer.addConnection)"
+        "view": "message-queue-explorer.queueTreeView",
+        "contents": "No connections found.\n[Add Connection](command:message-queue-explorer.addConnection)",
+        "when": "message-queue-explorer.hasConnections"
       }
     ],
     "menus": {
