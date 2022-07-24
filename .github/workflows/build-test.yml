@@ -1,5 +1,9 @@
 name: Build and Test
-on: [push]
+on:
+  push:
+  release:
+    types:
+      - created
 jobs:
   Build:
     runs-on: ubuntu-latest
@@ -34,3 +38,21 @@ jobs:
         if: runner.os == 'Linux'
       - run: yarn test
         if: runner.os != 'Linux'
+
+  Publish:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: # only when all tests where successful
+      - Build
+      - Test
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'yarn'
+      - run: npm i -g yarn
+      - run: yarn install --immutable
+      - run: yarn run deploy
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
