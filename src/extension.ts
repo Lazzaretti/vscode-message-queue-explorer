@@ -38,7 +38,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      "message-queue-explorer.openQueue",
+      "message-queue-explorer.openChannel",
       (args) => {
         const panel = new MessagesWebView(
           connectionFacade,

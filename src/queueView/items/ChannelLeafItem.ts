@@ -1,26 +1,23 @@
 import * as vscode from "vscode";
-import {
-  ChannelType,
-  QueueSubType,
-} from "../../logic/connections/models/IChannel";
 import { IMessagesPanelArgs } from "../../panels/MessagesWebView";
 import { MQTreeItem } from "./MQTreeItem";
+import { ISubChannelIdentifier } from "../../facade/ConnectionFacade";
 
 export class ChannelLeafItem extends MQTreeItem {
   constructor(
     public readonly connectionId: string,
-    public readonly channelType: ChannelType,
-    public readonly queueSubType: QueueSubType,
-    public readonly name: string
+    public readonly channelIdentifier: ISubChannelIdentifier
   ) {
-    super(queueSubType, vscode.TreeItemCollapsibleState.None);
+    const name =
+      channelIdentifier.subType?.toString() ??
+      channelIdentifier.channelType.toString();
+    super(name, vscode.TreeItemCollapsibleState.None);
     const args: IMessagesPanelArgs = {
-      connectionId: connectionId,
-      name,
-      queueSubType: queueSubType,
+      connectionId,
+      channelIdentifier,
     };
     this.command = {
-      command: "message-queue-explorer.openQueue",
+      command: "message-queue-explorer.openChannel",
       title: "Open",
       arguments: [args],
     };

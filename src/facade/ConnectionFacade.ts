@@ -3,10 +3,31 @@ import { ConnectionType } from "../logic/store/IConnection";
 import { Store } from "../logic/store/Store";
 import { IConnectionItem, ProviderType } from "./models/IConnectionItem";
 import { assertUnreachable } from "../helpers";
-import { IChannel, QueueSubType } from "../logic/connections/models/IChannel";
+import {
+  ChannelType,
+  IChannel,
+  QueueSubType,
+  TopicSubType,
+} from "../logic/connections/models/IChannel";
 import { IMessage } from "../logic/models/IMessage";
 
-export type IMessageCommand = "Requeue";
+export type IMessageCommand = "Requeue" | "Delete";
+export interface IChannelIdentifier {
+  name: string;
+  channelType: ChannelType;
+}
+
+export interface IQueueSubChannelIdentifier extends IChannelIdentifier {
+  subType: QueueSubType;
+}
+
+export interface ITopicSubChannelIdentifier extends IChannelIdentifier {
+  subType: TopicSubType;
+}
+
+export type ISubChannelIdentifier =
+  | IQueueSubChannelIdentifier
+  | ITopicSubChannelIdentifier;
 
 export class ConnectionFacade {
   constructor(private store: Store, private connectionPool: ConnectionPool) {}
@@ -18,12 +39,11 @@ export class ConnectionFacade {
 
   async getMessages(
     connectionId: string,
-    name: string,
-    queueSubType: QueueSubType
+    channelIdentifier: ISubChannelIdentifier
   ): Promise<IMessage[]> {
     const activeConnection =
       this.connectionPool.getByConnectionId(connectionId);
-    return await activeConnection.peekMessages(name, queueSubType);
+    return await activeConnection.peekMessages(channelIdentifier);
   }
 
   getConnections(): IConnectionItem[] {
@@ -48,14 +68,14 @@ export class ConnectionFacade {
   async executeCommandOnMessage(
     messageCommand: IMessageCommand,
     connectionId: string,
-    channelName: string,
+    channelIdentifier: ISubChannelIdentifier,
     messageId: string
   ) {
     const activeConnection =
       this.connectionPool.getByConnectionId(connectionId);
     await activeConnection.executeCommandOnMessage(
       messageCommand,
-      channelName,
+      channelIdentifier,
       messageId
     );
   }

@@ -1,19 +1,21 @@
-import { IMessageCommand } from "../../../facade/ConnectionFacade";
+import {
+  IMessageCommand,
+  ISubChannelIdentifier,
+} from "../../../facade/ConnectionFacade";
 import { IMessage } from "../../models/IMessage";
-import { IChannel, QueueSubType } from "./IChannel";
+import { IChannel } from "./IChannel";
 import { ISavableResponse } from "./ISavableResponse";
 
 export interface IActiveConnection {
   getSaveableConnection(): Promise<ISavableResponse>;
   peekMessages(
-    queueName: string,
-    queueSubType: QueueSubType,
+    channelIdentifier: ISubChannelIdentifier,
     amount?: number
   ): Promise<IMessage[]>;
   getChannels(): Promise<IChannel[]>;
   executeCommandOnMessage(
     messageCommand: IMessageCommand,
-    channelName: string,
+    channelIdentifier: ISubChannelIdentifier,
     messageId: string
   ): Promise<any>;
   close(): Promise<void>;
