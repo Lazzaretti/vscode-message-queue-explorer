@@ -3,6 +3,7 @@
   "displayName": "Message Queue Explorer",
   "description": "Tool to view and interact with Service Bus message queues.",
   "version": "0.0.1",
+  "license": "MIT",
   "engines": {
     "vscode": "^1.69.0"
   },
