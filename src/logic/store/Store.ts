@@ -14,6 +14,10 @@ export class Store {
 
   getConnections(): IConnection[] {
     const stringified = this.state.get(Store.keyConnection) as string;
+    if (!stringified) {
+      return [];
+    }
+
     return JSON.parse(stringified);
   }
 
