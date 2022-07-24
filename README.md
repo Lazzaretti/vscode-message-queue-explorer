@@ -1,6 +1,6 @@
 # Message Queue Explorer Extension for Visual Studio Code
 
-[![Lint and Build](https://github.com/Lazzaretti/vscode-message-queue-explorer/actions/workflows/build-test.yml/badge.svg?branch=main)](https://github.com/Lazzaretti/vscode-message-queue-explorer/actions/workflows/build-test.yml)
+[![Build and Test](https://github.com/Lazzaretti/vscode-message-queue-explorer/actions/workflows/build-test.yml/badge.svg?branch=main)](https://github.com/Lazzaretti/vscode-message-queue-explorer/actions/workflows/build-test.yml)
 
 A [Visual Studio Code](https://code.visualstudio.com/) extension to view and interact with Service Bus message queues.
 
