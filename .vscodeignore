@@ -1,3 +1,4 @@
+!node_modules/@vscode/webview-ui-toolkit/dist/toolkit.js
 .vscode/**
 .vscode-test/**
 out/**
