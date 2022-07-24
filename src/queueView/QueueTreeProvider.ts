@@ -38,21 +38,17 @@ export class QueueTreeProvider implements vscode.TreeDataProvider<MQTreeItem> {
           );
         case "ChannelTreeItem":
           const channel = element as ChannelTreeItem;
-          switch (channel.channelType) {
+          switch (channel.channelIdentifier.channelType) {
             case "Queue":
               return [
-                new ChannelLeafItem(
-                  channel.connectionId,
-                  "Queue",
-                  "Normal",
-                  channel.name
-                ),
-                new ChannelLeafItem(
-                  channel.connectionId,
-                  "Queue",
-                  "DeadLetter",
-                  channel.name
-                ),
+                new ChannelLeafItem(channel.connectionId, {
+                  ...channel.channelIdentifier,
+                  subType: "Normal",
+                }),
+                new ChannelLeafItem(channel.connectionId, {
+                  ...channel.channelIdentifier,
+                  subType: "DeadLetter",
+                }),
               ];
             default:
               return [];
@@ -79,12 +75,12 @@ export class QueueTreeProvider implements vscode.TreeDataProvider<MQTreeItem> {
       vscode.TreeItemCollapsibleState.Collapsed
     );
   }
+
   mapChannelItem(connectionId: string, item: IChannel): MQTreeItem {
     return new ChannelTreeItem(
       connectionId,
-      item.name,
+      item,
       item.status,
-      item.channelType,
       item.channelType === "Queue"
         ? vscode.TreeItemCollapsibleState.Collapsed
         : vscode.TreeItemCollapsibleState.None,

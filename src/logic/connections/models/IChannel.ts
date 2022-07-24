@@ -1,3 +1,5 @@
+import { IChannelIdentifier } from "../../../facade/ConnectionFacade";
+
 export type ChannelStatus =
   | "Active"
   | "Creating"
@@ -10,8 +12,9 @@ export type ChannelStatus =
   | "Unknown";
 export type ChannelType = "Topic" | "Queue";
 export type QueueSubType = "Normal" | "DeadLetter";
+export type TopicSubType = "Normal";
 
-export interface IChannel {
+export interface IChannel extends IChannelIdentifier {
   name: string;
   status: ChannelStatus;
   channelType: ChannelType;

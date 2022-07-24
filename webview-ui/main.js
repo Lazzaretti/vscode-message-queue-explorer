@@ -18,6 +18,12 @@ function main() {
           messageId: e.target.dataset.messageId,
         });
       }
+      if (e.target.classList.contains("btn-delete")) {
+        vscode.postMessage({
+          command: "delete",
+          messageId: e.target.dataset.messageId,
+        });
+      }
     }
   });
 }

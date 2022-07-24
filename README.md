@@ -12,6 +12,7 @@ Currently, Azure Service Bus is supported. With the following features:
 - List messages in a specific queue
 - List dead-letter message
 - Requeue dead-letter messages
+- Delete message from queue
 
 ## Requirements
 

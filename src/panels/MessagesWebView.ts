@@ -1,14 +1,14 @@
-import exp = require("constants");
 import * as vscode from "vscode";
-import { ConnectionFacade } from "../facade/ConnectionFacade";
+import {
+  ConnectionFacade,
+  ISubChannelIdentifier,
+} from "../facade/ConnectionFacade";
 import { getUri } from "../helpers";
-import { QueueSubType } from "../logic/connections/models/IChannel";
 import { IMessage } from "../logic/models/IMessage";
 
 export interface IMessagesPanelArgs {
   connectionId: string;
-  name: string;
-  queueSubType: QueueSubType;
+  channelIdentifier: ISubChannelIdentifier;
 }
 
 export class MessagesWebView {
@@ -36,8 +36,6 @@ export class MessagesWebView {
       }
     );
 
-    this.updateView();
-
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
 
     this.panel.webview.onDidReceiveMessage((data) => {
@@ -47,7 +45,7 @@ export class MessagesWebView {
             .executeCommandOnMessage(
               "Requeue",
               args.connectionId,
-              args.name,
+              args.channelIdentifier,
               data.messageId
             )
             .then(() =>
@@ -57,10 +55,11 @@ export class MessagesWebView {
               vscode.window.showErrorMessage(
                 "Requeue failed: " + JSON.stringify(e)
               )
-            );
+            )
+            .finally(() => this.reloadTreeAndDetail());
           break;
         }
-        case "open-body":
+        case "open-body": {
           const message = this.messages.filter(
             (x) => x.messageId === data.messageId
           )[0];
@@ -73,21 +72,51 @@ export class MessagesWebView {
               vscode.window.showTextDocument(document);
             });
           break;
+        }
+        case "delete": {
+          this.connectionFacade
+            .executeCommandOnMessage(
+              "Delete",
+              args.connectionId,
+              args.channelIdentifier,
+              data.messageId
+            )
+            .then(() => {
+              vscode.window.showInformationMessage("message deleted");
+            })
+            .catch((e) =>
+              vscode.window.showErrorMessage(
+                "Delete failed: " + JSON.stringify(e)
+              )
+            )
+            .finally(() => this.reloadTreeAndDetail());
+          break;
+        }
       }
     });
 
-    this.loadMessages();
+    this.loadMessagesAndUpdateView();
   }
 
-  private async loadMessages() {
+  private reloadTreeAndDetail() {
+    vscode.commands.executeCommand(
+      "message-queue-explorer.queueTreeView.refresh"
+    );
+    this.loadMessagesAndUpdateView();
+  }
+
+  private async loadMessagesAndUpdateView() {
     if (!this.args) {
       return;
     }
 
+    this.isLoading = true;
+    this.messages = [];
+    this.updateView();
+
     this.messages = await this.connectionFacade.getMessages(
       this.args.connectionId,
-      this.args.name,
-      this.args.queueSubType
+      this.args.channelIdentifier
     );
 
     this.isLoading = false;
@@ -99,8 +128,13 @@ export class MessagesWebView {
       return;
     }
 
-    const title = `Message Queue ${this.args.name}`;
+    let title = `${this.args.channelIdentifier.channelType}`;
+    if (this.args.channelIdentifier.subType === "DeadLetter") {
+      title += "DLX ";
+    }
+    title += ` ${this.args.channelIdentifier.name}`;
     this.panel.title = title;
+
     const webview = this.panel.webview;
 
     const toolkitUri = getUri(webview, this.extensionUri, [
@@ -166,7 +200,7 @@ export class MessagesWebView {
   private getActionsHtml(m: IMessage) {
     let actions = "";
     if (m.messageId) {
-      if (this.args?.queueSubType === "DeadLetter") {
+      if (this.args?.channelIdentifier?.subType === "DeadLetter") {
         actions += `<vscode-button class="btn-requeue" data-message-id="${this.escapeToString(
           m.messageId
         )}">Requeue</vscode-button>`;
@@ -174,6 +208,9 @@ export class MessagesWebView {
       actions += `<vscode-button class="btn-open-body" data-message-id="${this.escapeToString(
         m.messageId
       )}">Open</vscode-button>`;
+      actions += `<vscode-button class="btn-delete" appearance="secondary" data-message-id="${this.escapeToString(
+        m.messageId
+      )}">Delete</vscode-button>`;
     }
     return actions;
   }

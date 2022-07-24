@@ -6,10 +6,14 @@ import {
   ServiceBusReceivedMessage,
   ServiceBusReceiver,
 } from "@azure/service-bus";
-import { IMessageCommand } from "../../../facade/ConnectionFacade";
+import {
+  IChannelIdentifier,
+  IMessageCommand,
+  ISubChannelIdentifier,
+} from "../../../facade/ConnectionFacade";
 import { IMessage } from "../../models/IMessage";
 import { IActiveConnection } from "../models/IActiveConnection";
-import { IChannel, QueueSubType } from "../models/IChannel";
+import { IChannel } from "../models/IChannel";
 import { ISavableResponse } from "../models/ISavableResponse";
 
 export class ServiceBusService implements IActiveConnection {
@@ -90,8 +94,7 @@ export class ServiceBusService implements IActiveConnection {
   }
 
   async peekMessages(
-    queueName: string,
-    queueSubType: QueueSubType,
+    channelIdentifier: ISubChannelIdentifier,
     amount = 50
   ): Promise<IMessage[]> {
     // peek does not retrun the messages agina when reusing the same client... -> make separate client
@@ -100,9 +103,7 @@ export class ServiceBusService implements IActiveConnection {
     let receiver = null;
     try {
       serviceBusClient = new ServiceBusClient(this.connectionString);
-      receiver = serviceBusClient.createReceiver(queueName, {
-        subQueueType: queueSubType === "DeadLetter" ? "deadLetter" : undefined,
-      });
+      receiver = this.createReceiver(channelIdentifier, serviceBusClient);
       const messages = await receiver.peekMessages(amount, {
         fromSequenceNumber: 0,
       });
@@ -121,17 +122,28 @@ export class ServiceBusService implements IActiveConnection {
 
   async executeCommandOnMessage(
     messageCommand: IMessageCommand,
-    channelName: string,
+    channelIdentifier: ISubChannelIdentifier,
     messageId: string
   ): Promise<any> {
     switch (messageCommand) {
       case "Requeue":
-        return await this.requeueMessage(channelName, messageId);
+        if (
+          channelIdentifier.subType !== "DeadLetter" ||
+          channelIdentifier.channelType !== "Queue"
+        ) {
+          throw new Error("Requeue in only supported for dead-letter queues");
+        }
+        return await this.requeueMessage(channelIdentifier, messageId);
+      case "Delete":
+        return await this.deleteMessage(channelIdentifier, messageId);
     }
     throw new Error("command not implemented");
   }
 
-  async requeueMessage(channelName: string, messageId: string) {
+  async requeueMessage(
+    channelIdentifier: ISubChannelIdentifier,
+    messageId: string
+  ) {
     // peek does not retrun the messages agina when reusing the same client... -> make separate client
     // https://github.com/Azure/azure-sdk-for-js/issues/22687
     let serviceBusClient = null;
@@ -139,27 +151,71 @@ export class ServiceBusService implements IActiveConnection {
     let receiver = null;
     try {
       serviceBusClient = new ServiceBusClient(this.connectionString);
-      sender = serviceBusClient.createSender(channelName);
-      receiver = serviceBusClient.createReceiver(channelName, {
-        subQueueType: "deadLetter",
-      });
+      sender = serviceBusClient.createSender(channelIdentifier.name);
+      receiver = this.createReceiver(channelIdentifier, serviceBusClient);
 
-      const message = await this.getMessageById(receiver, messageId);
-      if (message === null) {
-        throw new Error(
-          `message ${messageId} is not in queue ${channelName} anymore`
-        );
-      }
+      const message = await this.getMessageByIdOrThrow(
+        receiver,
+        channelIdentifier,
+        messageId
+      );
 
       await sender.sendMessages(message);
       await receiver.completeMessage(message);
-    } catch (e) {
-      throw e;
     } finally {
       receiver?.close();
       sender?.close();
       serviceBusClient?.close();
     }
+  }
+
+  async deleteMessage(
+    channelIdentifier: ISubChannelIdentifier,
+    messageId: string
+  ) {
+    // peek does not retrun the messages agina when reusing the same client... -> make separate client
+    // https://github.com/Azure/azure-sdk-for-js/issues/22687
+    let serviceBusClient = null;
+    let receiver = null;
+    try {
+      serviceBusClient = new ServiceBusClient(this.connectionString);
+      receiver = this.createReceiver(channelIdentifier, serviceBusClient);
+
+      const message = await this.getMessageByIdOrThrow(
+        receiver,
+        channelIdentifier,
+        messageId
+      );
+
+      await receiver.completeMessage(message);
+    } finally {
+      receiver?.close();
+      serviceBusClient?.close();
+    }
+  }
+
+  private createReceiver(
+    channelIdentifier: ISubChannelIdentifier,
+    serviceBusClient: ServiceBusClient
+  ) {
+    return serviceBusClient.createReceiver(channelIdentifier.name, {
+      subQueueType:
+        channelIdentifier.subType === "DeadLetter" ? "deadLetter" : undefined,
+    });
+  }
+
+  private async getMessageByIdOrThrow(
+    receiver: ServiceBusReceiver,
+    channelIdentifier: IChannelIdentifier,
+    messageId: string
+  ): Promise<ServiceBusReceivedMessage> {
+    const message = await this.getMessageById(receiver, messageId);
+    if (message === null) {
+      throw new Error(
+        `message ${messageId} is not in ${channelIdentifier.channelType} ${channelIdentifier.name} anymore`
+      );
+    }
+    return message;
   }
 
   private async getMessageById(
