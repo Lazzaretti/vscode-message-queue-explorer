@@ -15,6 +15,7 @@ import { IMessage } from "../../models/IMessage";
 import { IActiveConnection } from "../models/IActiveConnection";
 import { IChannel } from "../models/IChannel";
 import { ISavableResponse } from "../models/ISavableResponse";
+const long = require("long");
 
 export class ServiceBusService implements IActiveConnection {
   private serviceBusClient: ServiceBusClient;
@@ -97,15 +98,11 @@ export class ServiceBusService implements IActiveConnection {
     channelIdentifier: ISubChannelIdentifier,
     amount = 50
   ): Promise<IMessage[]> {
-    // peek does not retrun the messages agina when reusing the same client... -> make separate client
-    // https://github.com/Azure/azure-sdk-for-js/issues/22687
-    let serviceBusClient = null;
     let receiver = null;
     try {
-      serviceBusClient = new ServiceBusClient(this.connectionString);
-      receiver = this.createReceiver(channelIdentifier, serviceBusClient);
+      receiver = this.createReceiver(channelIdentifier);
       const messages = await receiver.peekMessages(amount, {
-        fromSequenceNumber: 0,
+        fromSequenceNumber: long.fromInt(0),
       });
 
       return messages.map((m) => ({
@@ -116,7 +113,6 @@ export class ServiceBusService implements IActiveConnection {
       }));
     } finally {
       receiver?.close();
-      serviceBusClient?.close();
     }
   }
 
@@ -144,15 +140,11 @@ export class ServiceBusService implements IActiveConnection {
     channelIdentifier: ISubChannelIdentifier,
     messageId: string
   ) {
-    // peek does not retrun the messages agina when reusing the same client... -> make separate client
-    // https://github.com/Azure/azure-sdk-for-js/issues/22687
-    let serviceBusClient = null;
     let sender = null;
     let receiver = null;
     try {
-      serviceBusClient = new ServiceBusClient(this.connectionString);
-      sender = serviceBusClient.createSender(channelIdentifier.name);
-      receiver = this.createReceiver(channelIdentifier, serviceBusClient);
+      sender = this.serviceBusClient.createSender(channelIdentifier.name);
+      receiver = this.createReceiver(channelIdentifier);
 
       const message = await this.getMessageByIdOrThrow(
         receiver,
@@ -165,7 +157,6 @@ export class ServiceBusService implements IActiveConnection {
     } finally {
       receiver?.close();
       sender?.close();
-      serviceBusClient?.close();
     }
   }
 
@@ -173,13 +164,9 @@ export class ServiceBusService implements IActiveConnection {
     channelIdentifier: ISubChannelIdentifier,
     messageId: string
   ) {
-    // peek does not retrun the messages agina when reusing the same client... -> make separate client
-    // https://github.com/Azure/azure-sdk-for-js/issues/22687
-    let serviceBusClient = null;
     let receiver = null;
     try {
-      serviceBusClient = new ServiceBusClient(this.connectionString);
-      receiver = this.createReceiver(channelIdentifier, serviceBusClient);
+      receiver = this.createReceiver(channelIdentifier);
 
       const message = await this.getMessageByIdOrThrow(
         receiver,
@@ -190,15 +177,11 @@ export class ServiceBusService implements IActiveConnection {
       await receiver.completeMessage(message);
     } finally {
       receiver?.close();
-      serviceBusClient?.close();
     }
   }
 
-  private createReceiver(
-    channelIdentifier: ISubChannelIdentifier,
-    serviceBusClient: ServiceBusClient
-  ) {
-    return serviceBusClient.createReceiver(channelIdentifier.name, {
+  private createReceiver(channelIdentifier: ISubChannelIdentifier) {
+    return this.serviceBusClient.createReceiver(channelIdentifier.name, {
       subQueueType:
         channelIdentifier.subType === "DeadLetter" ? "deadLetter" : undefined,
     });
