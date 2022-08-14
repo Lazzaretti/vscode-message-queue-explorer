@@ -13,7 +13,7 @@
     "url": "https://github.com/Lazzaretti/vscode-message-queue-explorer/issues"
   },
   "qna": "https://github.com/Lazzaretti/vscode-message-queue-explorer/discussions/categories/q-a",
-  "icon": "resources/MQ.png",
+  "icon": "resources/MQ-icon.png",
   "publisher": "Lazzaretti",
   "author": {
     "name": "Lazzaretti",
