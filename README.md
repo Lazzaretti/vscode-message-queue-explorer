@@ -18,3 +18,8 @@ Currently, Azure Service Bus is supported. With the following features:
 
 You need a Service Bus Connection String with `Manage` claim.
 This is needed to list the queues and topics.
+
+## Release Process
+
+1. bump the version in [package.json](./package.json) and commit it to the main branch
+2. create a release with a tag with the verison number you commited
